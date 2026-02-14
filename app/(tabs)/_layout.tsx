@@ -1,35 +1,53 @@
+import { useAppTheme } from '@/src/theme/ThemeContext';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Text } from 'react-native';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+    return <Text style={{ fontSize: focused ? 26 : 22, opacity: focused ? 1 : 0.6 }}>{emoji}</Text>;
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+    const { colors, radii } = useAppTheme();
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+    return (
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+                tabBarActiveTintColor: colors.tabIconActive,
+                tabBarInactiveTintColor: colors.tabIconDefault,
+                tabBarStyle: {
+                    backgroundColor: colors.tabBar,
+                    borderTopColor: colors.border,
+                    borderTopWidth: 0.5,
+                },
+                tabBarLabelStyle: {
+                    fontSize: 11,
+                    fontWeight: '500',
+                },
+            }}
+        >
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: 'Home',
+                    tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+                }}
+            />
+            <Tabs.Screen
+                name="closet"
+                options={{
+                    title: 'Closet',
+                    tabBarIcon: ({ focused }) => <TabIcon emoji="👗" focused={focused} />,
+                }}
+            />
+            <Tabs.Screen
+                name="settings"
+                options={{
+                    title: 'Settings',
+                    tabBarIcon: ({ focused }) => <TabIcon emoji="⚙️" focused={focused} />,
+                }}
+            />
+        </Tabs>
+    );
 }

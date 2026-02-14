@@ -1,98 +1,166 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import type { ActionKind } from '@/src/engine/types';
+import { usePetStore } from '@/src/state/petStore';
+import { useAppTheme } from '@/src/theme/ThemeContext';
+import { Button } from '@/src/ui/Button';
+import { Chip } from '@/src/ui/Chip';
+import { PetAvatar } from '@/src/ui/PetAvatar';
+import { Screen } from '@/src/ui/Screen';
+import { StatBar } from '@/src/ui/StatBar';
+import { Touchable } from '@/src/ui/Touchable';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const ACTIONS: { kind: ActionKind; emoji: string; label: string }[] = [
+    { kind: 'feed', emoji: '🍖', label: 'Feed' },
+    { kind: 'play', emoji: '🎾', label: 'Play' },
+    { kind: 'sleep', emoji: '💤', label: 'Sleep' },
+    { kind: 'clean', emoji: '🛁', label: 'Clean' },
+];
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    const { colors, shadows, spacing, fontSizes, radii } = useAppTheme();
+    const { pet, stats, wallet, performAction } = usePetStore();
+    const bottomSheetRef = useRef<BottomSheet>(null);
+    const snapPoints = useMemo(() => ['35%'], []);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    const openActions = useCallback(() => {
+        bottomSheetRef.current?.expand();
+    }, []);
+
+    const handleAction = useCallback(
+        (action: ActionKind) => {
+            performAction(action);
+            bottomSheetRef.current?.close();
+        },
+        [performAction],
+    );
+
+    const renderBackdrop = useCallback(
+        (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
+            <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.4} />
+        ),
+        [],
+    );
+
+    if (!pet) {
+        return (
+            <Screen>
+                <View style={styles.emptyContainer}>
+                    <Text style={{ color: colors.textMuted, fontSize: fontSizes.md }}>No pet found. Complete onboarding first.</Text>
+                </View>
+            </Screen>
+        );
+    }
+
+    return (
+        <Screen>
+            <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}>
+                {/* Wallet */}
+                <View style={[styles.walletRow, { marginBottom: spacing.md }]}>
+                    <View
+                        style={[
+                            styles.walletPill,
+                            {
+                                backgroundColor: colors.surface,
+                                borderRadius: radii.full,
+                                paddingVertical: spacing.xs + 2,
+                                paddingHorizontal: spacing.md,
+                                gap: spacing.xs,
+                                ...shadows.sm,
+                            },
+                        ]}
+                    >
+                        <Text style={{ fontSize: fontSizes.md }}>🪙</Text>
+                        <Text style={[styles.semibold, { color: colors.text, fontSize: fontSizes.sm }]}>{wallet.coins}</Text>
+                    </View>
+                </View>
+
+                {/* Pet */}
+                <View style={[styles.centered, { marginBottom: spacing.lg }]}>
+                    <PetAvatar size={180} />
+                    <Text style={[styles.petName, { color: colors.text, fontSize: fontSizes.xl, marginTop: spacing.md }]}>{pet.name}</Text>
+                    <Text style={{ color: colors.textMuted, fontSize: fontSizes.sm, marginTop: spacing.xs }}>
+                        Lv. {pet.level} • {pet.species}
+                    </Text>
+                </View>
+
+                {/* Traits */}
+                <View style={[styles.traitsRow, { gap: spacing.sm, marginBottom: spacing.xl }]}>
+                    {pet.traits.map((trait) => (
+                        <Chip key={trait} label={trait} selected />
+                    ))}
+                </View>
+
+                {/* Stats */}
+                <View
+                    style={{
+                        backgroundColor: colors.surface,
+                        borderRadius: radii.lg,
+                        padding: spacing.md,
+                        marginBottom: spacing.lg,
+                        ...shadows.md,
+                    }}
+                >
+                    <StatBar label="Hunger" value={100 - stats.hunger} color={colors.statHunger} />
+                    <StatBar label="Energy" value={stats.energy} color={colors.statEnergy} />
+                    <StatBar label="Happiness" value={stats.happiness} color={colors.statHappiness} />
+                    <StatBar label="Cleanliness" value={stats.cleanliness} color={colors.statCleanliness} />
+                </View>
+
+                {/* Actions button */}
+                <Button title="🎮  Actions" onPress={openActions} />
+            </ScrollView>
+
+            {/* Bottom sheet */}
+            <BottomSheet
+                ref={bottomSheetRef}
+                index={-1}
+                snapPoints={snapPoints}
+                enablePanDownToClose
+                backdropComponent={renderBackdrop}
+                backgroundStyle={{ backgroundColor: colors.surface }}
+                handleIndicatorStyle={{ backgroundColor: colors.textMuted }}
+            >
+                <BottomSheetView style={{ padding: spacing.lg }}>
+                    <Text style={[styles.sheetTitle, { color: colors.text, fontSize: fontSizes.lg, marginBottom: spacing.md }]}>
+                        What would you like to do?
+                    </Text>
+                    <View style={styles.actionsRow}>
+                        {ACTIONS.map(({ kind, emoji, label }) => (
+                            <Touchable
+                                key={kind}
+                                onPress={() => handleAction(kind)}
+                                style={[
+                                    styles.actionButton,
+                                    {
+                                        backgroundColor: colors.surfaceAlt,
+                                        borderRadius: radii.lg,
+                                        padding: spacing.md,
+                                    },
+                                ]}
+                            >
+                                <Text style={{ fontSize: 28, marginBottom: spacing.xs }}>{emoji}</Text>
+                                <Text style={[styles.actionLabel, { color: colors.text, fontSize: fontSizes.sm }]}>{label}</Text>
+                            </Touchable>
+                        ))}
+                    </View>
+                </BottomSheetView>
+            </BottomSheet>
+        </Screen>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    walletRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+    walletPill: { flexDirection: 'row', alignItems: 'center' },
+    semibold: { fontWeight: '600' },
+    centered: { alignItems: 'center' },
+    petName: { fontWeight: '700' },
+    traitsRow: { flexDirection: 'row', justifyContent: 'center' },
+    sheetTitle: { fontWeight: '600', textAlign: 'center' },
+    actionsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+    actionButton: { alignItems: 'center', minWidth: 72, overflow: 'hidden' },
+    actionLabel: { fontWeight: '500' },
 });
